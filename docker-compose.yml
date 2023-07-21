@@ -1,28 +1,27 @@
 name: kafka-topic-switching-test-env
 
+x-depends-on: &depends-on
+  depends_on:
+    kafka:
+      condition: service_healthy
+    init-kafka:
+      condition: service_completed_successfully
+
 services:
   # log generators
   log-gen1:
     image: mingrammer/flog
     container_name: log-gen1
-    depends_on:
-      kafka:
-        condition: service_healthy
-      init-kafka:
-        condition: service_completed_successfully
-    command: -t log -f json -o /var/log/test1.log -d 1s -n 1 -l
+    <<: *depends-on
+    command: -t log -f rfc5424 -o /var/log/test1.log -d 1s -n 1 -l
     volumes:
       - log-data:/var/log
 
   log-gen2:
     image: mingrammer/flog
     container_name: log-gen2
-    depends_on:
-      kafka:
-        condition: service_healthy
-      init-kafka:
-        condition: service_completed_successfully
-    command: -t log -f json -o /var/log/test2.log -d 1s -n 1 -l
+    <<: *depends-on
+    command: -t log -f rfc5424 -o /var/log/test2.log -d 1s -n 1 -l
     volumes:
       - log-data:/var/log
 
@@ -30,11 +29,7 @@ services:
   log-shipper:
     image: logstash:7.17.10
     container_name: log-shipper
-    depends_on:
-      kafka:
-        condition: service_healthy
-      init-kafka:
-        condition: service_completed_successfully
+    <<: *depends-on
     command: logstash -f /etc/logstash/conf.d/logstash.conf
     volumes:
       - log-data:/var/log
@@ -80,11 +75,7 @@ services:
   logstash-consumer:
     image: logstash:7.17.10
     container_name: logstash-consumer
-    depends_on:
-      kafka:
-        condition: service_healthy
-      init-kafka:
-        condition: service_completed_successfully
+    <<: *depends-on
     command: logstash -f /etc/logstash/conf.d/logstash.conf
     volumes:
       - ./logstash-consumer.conf:/etc/logstash/conf.d/logstash.conf:ro
