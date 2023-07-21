@@ -59,6 +59,7 @@ services:
   ### Create topics beforehand
   init-kafka:
     image: confluentinc/cp-kafka:6.1.1
+    container_name: init-kafka
     depends_on:
       - kafka
     entrypoint: [ '/bin/sh', '-c' ]
