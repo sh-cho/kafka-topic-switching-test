@@ -4,3 +4,13 @@
 
 ## How to use
 
+```sh
+docker compose up -d
+```
+up
+
+```sh
+docker compose down
+docker compose down -v
+```
+down (with volume)
