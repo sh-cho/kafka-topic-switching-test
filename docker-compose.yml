@@ -1,0 +1,8 @@
+services:
+  log-gen:
+    image: mingrammer/flog
+    command: -f json -o /var/log/access.log -s 1s -n 10 -l
+
+volumes:
+  log-data:
+
