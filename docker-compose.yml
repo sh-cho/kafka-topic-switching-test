@@ -5,6 +5,11 @@ services:
   log-gen1:
     image: mingrammer/flog
     container_name: log-gen1
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
     command: -f json -o /var/log/test1.log -s 1s -n 1 -l
     volumes:
       - log-data:/var/log
@@ -12,6 +17,11 @@ services:
   log-gen2:
     image: mingrammer/flog
     container_name: log-gen2
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
     command: -f json -o /var/log/test2.log -s 1s -n 1 -l
     volumes:
       - log-data:/var/log
@@ -20,6 +30,11 @@ services:
   log-shipper:
     image: logstash:7.17.10
     container_name: log-shipper
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
     command: logstash -f /etc/logstash/conf.d/logstash.conf
     volumes:
       - log-data:/var/log
@@ -34,11 +49,41 @@ services:
       - kafka-data:/bitnami
     environment:
       - ALLOW_PLAINTEXT_LISTENER=yes
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe"]
+      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  ### Create topics beforehand
+  init-kafka:
+    image: confluentinc/cp-kafka:6.1.1
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic test1 --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic test2 --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
 
   # kafka -> somewhere
   logstash-consumer:
     image: logstash:7.17.10
     container_name: logstash-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
     command: logstash -f /etc/logstash/conf.d/logstash.conf
     volumes:
       - ./logstash-consumer.conf:/etc/logstash/conf.d/logstash.conf:ro
