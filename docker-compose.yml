@@ -10,7 +10,7 @@ services:
         condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
-    command: -f json -o /var/log/test1.log -s 1s -n 1 -l
+    command: -t log -f json -o /var/log/test1.log -d 1s -n 1 -l
     volumes:
       - log-data:/var/log
 
@@ -22,7 +22,7 @@ services:
         condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
-    command: -f json -o /var/log/test2.log -s 1s -n 1 -l
+    command: -t log -f json -o /var/log/test2.log -d 1s -n 1 -l
     volumes:
       - log-data:/var/log
 
