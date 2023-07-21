@@ -1,8 +1,48 @@
+name: kafka-topic-switching-test-env
+
 services:
-  log-gen:
+  # log generators
+  log-gen1:
     image: mingrammer/flog
-    command: -f json -o /var/log/access.log -s 1s -n 10 -l
+    container_name: log-gen1
+    command: -f json -o /var/log/test1.log -s 1s -n 1 -l
+    volumes:
+      - log-data:/var/log
+
+  log-gen2:
+    image: mingrammer/flog
+    container_name: log-gen2
+    command: -f json -o /var/log/test2.log -s 1s -n 1 -l
+    volumes:
+      - log-data:/var/log
+
+  # app -> kafka
+  log-shipper:
+    image: logstash:7.17.10
+    container_name: log-shipper
+    command: logstash -f /etc/logstash/conf.d/logstash.conf
+    volumes:
+      - log-data:/var/log
+      - ./logstash-shipper.conf:/etc/logstash/conf.d/logstash.conf:ro
+
+  kafka:
+    image: docker.io/bitnami/kafka:3.5
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/bitnami
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+
+  # kafka -> somewhere
+  logstash-consumer:
+    image: logstash:7.17.10
+    container_name: logstash-consumer
+    command: logstash -f /etc/logstash/conf.d/logstash.conf
+    volumes:
+      - ./logstash-consumer.conf:/etc/logstash/conf.d/logstash.conf:ro
 
 volumes:
   log-data:
-
+  kafka-data:
